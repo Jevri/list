@@ -1,137 +1,212 @@
-#include <stdio.h>
+#include "list.h"
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 
-#define MAXLINE 100
-
-typedef struct Link{
-  char *text;
-  struct Link *next;
-}Link;
-
-int addl(Link **list);
-int removel(Link **list);
-int show(Link *list);
-
-Link *load(char *file);
-int save(char *file,Link *list);
-
-int main(int argc, char *argv[])
+static Link *
+new_link(void *data, Link *n)
 {
-  char * file = (argc > 2) ? argv[2] : "file";
-  if (argc > 1){
-    
-  }
-  else {
-    printf("there is no argument\n");
-    return 1;
-  }
-
-  Link *list = NULL;
-  list = load(file);
-  if (strcmp(argv[1],"add") == 0){
-    addl(&list);
-  }
-  else if (strcmp(argv[1],"remove") == 0){
-    removel(&list);
-  }
-  else if (strcmp(argv[1],"show") == 0){
-    show(list);
-  }
-  else{
-    printf("%s is not a valid option\n",argv[1]);
-    return 2;
-  }
-  save(file,list);
-
-  return 0;
-}
-
-Link *newLink(char *s,Link *n){
-  Link *p;
-  if ((p = malloc(sizeof(Link))) != NULL){
-    if ((p->text = strdup(s)) != NULL){
+  Link *p = malloc(sizeof(Link));
+  if (p != NULL)
+    {
+      p->data = data;
       p->next = n;
       return p;
     }
-    else
-      free(p);
-  }
   return NULL;
 }
 
-Link *load(char*file){
-  FILE *fp;
-  char s[MAXLINE];
-  if ((fp = fopen(file,"r")) == NULL){
-    printf("could not open file\n");
-    return newLink("",NULL);
-  }
-  Link **lp;
-  Link *start;
-  for (lp = &start; fscanf(fp,"%99s",s)==1; lp = &(*lp)->next){
-    if ((*lp = newLink(s,NULL)) == NULL){
-      printf("no more memory\n");
+static void
+delete_link(Link * link,
+	    void (*delete_data)(void *))
+{
+  if (link->data != NULL)
+    delete_data(link->data);
+  free(link);
+}
+static void
+free_list(Link * list)
+{
+  if (list == NULL)
+    return;
+  if (list->next != NULL)
+    free_list(list->next);
+  free(list);
+  return;
+}
+/* wip the issue is the sorted half and unsorted half becomes unlinked */
+void
+list_sort(Link **list,
+	  int (*compare)(void *, void *))
+{
+  if (*list == NULL)
+    return;
+  Link * new_list = NULL;
+  Link ** lp = list;
+  do
+    {
+      list_add_order(&new_list, (*lp)->data, compare);
+      lp = &(*lp)->next
     }
-  }
-  if ((*lp = newLink("",NULL)) == NULL){
-    printf("no more memory\n");
-  }
-  fclose(fp);
-  return start;
+  while ((*lp)->next != NULL);
+  Link * temp = *list;
+  *list = new_list;
+  free_list(temp);
+  return;
 }
 
-int save(char *file,Link *list){
-  FILE *fp;
-  Link **lp;
-  fp = fopen(file,"w");
-  for (lp = &list; (*lp)->next != NULL; lp = &(*lp)->next){
-    fprintf(fp,"%s\n", (*lp)->text);
-    //if error on fp close and return 1
-  }
-  fprintf(fp,"%s\n", (*lp)->text);
-  fclose(fp);
-  return 0;
-}
-
-int addl(Link  **list){
-  char s[MAXLINE];
+int
+list_add_order(Link **list, void *data,
+		   int (*compare)(void *, void*))
+{
   Link **lp = list;
-  scanf("%99s",s);
-  for (lp = list; (*lp)->next != NULL; lp = &(*lp)->next){
-    if (strcmp((*lp)->text,s)>0){
-      break;
-    }
-  }
-  if ((*lp = newLink(s,*lp)) == NULL){
-    printf("no more memory\n");
-    return 1;
-  }
-  return 0;
-}
-
-int removel(Link **list){
-  Link **lp;
-  Link *dl;
-  char text[MAXLINE];
-  scanf("%99s",text);
-  for (lp = list; (*lp)->next != NULL; lp = &(*lp)->next){
-    if(strcmp((*lp)->text,text) == 0){
-      dl = *lp;
-      *lp = (*lp)->next;
-      free(dl->text);
-      free(dl);
+  if (*lp != NULL)
+    while ((*lp)->next != NULL)
+      {
+	if (compare((*lp)->data, data)>0)
+	  break;
+	lp = &(*lp)->next;
+      }
+  *lp = new_link(data,*lp);
+  if (*lp != NULL)
+    {
       return 0;
     }
-  }
+  printf("no more memory\n");
   return 1;
 }
 
-int show(Link *list){
-  Link **lp;
+int
+list_add_index(Link **list, void *data, int index)
+{
+  Link **lp = list;
+  if (*lp != NULL)
+    while ((*lp)->next != NULL)
+      {
+	if (index == 0)
+	  break;
+	lp = &(*lp)->next;
+	index--;
+      }
+  *lp = new_link(data,*lp);
+  if (*lp != NULL)
+    {
+      return 0;
+    }
+  printf("no more memory\n");
+  return 1;
+}
 
-  for (lp = &list; (*lp)->next != NULL; lp = &(*lp)->next){
-    printf("%s\n",(*lp)->text);
-  }
+int
+list_add(Link **list, void *data)
+{
+  Link **lp = list;
+  if (*lp != NULL)
+    while ((*lp)->next != NULL)
+      lp = &(*lp)->next;
+  *lp = new_link(data,*lp);
+  if (*lp != NULL)
+    {
+      return 0;
+    }
+  printf("no more memory\n");
+  return 1;
+}
+
+int
+list_delete_item(Link **list, void *data,
+		 int (*compare)(void*,void*),
+		 void (*delete_data)(void *))
+{
+  if (*list == NULL)
+    return 0;
+  Link **lp;
+  for (lp = list; (*lp)->next != NULL; lp = &(*lp)->next)
+    {
+      if(compare((*lp)->data, data) == 0)
+	{
+	  Link * temp = *lp;
+	  *lp = (*lp)->next;
+	  delete_link(temp, delete_data);
+	  return 0;
+	}
+    }
+  return 1;
+}
+
+int
+list_delete_index(Link **list, int index,
+		  void (*delete_data)(void *))
+{
+  if (*list == NULL)
+    return 0;
+  Link **lp;
+  for (lp = list; (*lp)->next != NULL; lp = &(*lp)->next, index--)
+    {
+      if(index == 0)
+	{
+	  Link * temp = *lp;
+	  *lp = (*lp)->next;
+	  delete_link(temp, delete_data);
+	  return 0;
+	}
+    }
+  return 1;
+}
+
+int
+list_delete_all_item(Link **list, void *data,
+		 int (*compare)(void*,void*),
+		 void (*delete_data)(void *))
+{
+  if (*list == NULL)
+    return 0;
+  Link **lp;
+  for (lp = list; (*lp)->next != NULL; lp = &(*lp)->next)
+    {
+      if(compare((*lp)->data, data) == 0)
+	{
+	  Link * temp = *lp;
+	  *lp = (*lp)->next;
+	  delete_link(temp, delete_data);
+	}
+    }
+  return 0;
+}
+
+int
+list_remove_index(Link **list, int index)
+{
+  if (*list == NULL)
+    return 0;
+  Link **lp;
+  for (lp = list; (*lp)->next != NULL; lp = &(*lp)->next, index--)
+    {
+      if(index == 0)
+	{
+	  Link * temp = *lp;
+	  *lp = (*lp)->next;
+	  free(temp);
+	  return 0;
+	}
+    }
+  return 0;
+}
+int
+list_remove_item(Link **list, void *data,
+		 int (*compare)(void *, void*))
+{
+  if (*list == NULL)
+    return 0;
+  Link **lp;
+  for (lp = list; (*lp)->next != NULL; lp = &(*lp)->next)
+    {
+      if(compare((*lp)->data, data) == 0)
+	{
+	  Link * temp = *lp;
+	  *lp = (*lp)->next;
+	  free(temp);
+	  return 0;
+	}
+    }
   return 0;
 }
