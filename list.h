@@ -36,8 +36,21 @@ list_delete_all_item(Link **list, void *data,
 
 /* will remove from chain */
 int
-list_remove_index(Link **list, void *data, int index);
+list_remove_index(Link **list, int index);
 int
 list_remove_item(Link **list, void *data,
 		 int (*compare)(void *, void*));
+/* append list b to a */
+int
+list_append(Link **list_a, Link * list_b);
+
+/* add null terminated array to list */
+int
+list_add_array(Link ** list, void **array);
+/* add  length of array to list*/
+int
+list_add_array_length(Link ** list, void **array, int length);
+Link *
+list_get(Link * list, void * data,
+	 int (*compare)(void *, void*));
 #endif
