@@ -53,4 +53,8 @@ list_add_array_length(Link ** list, void **array, int length);
 Link *
 list_get(Link * list, void * data,
 	 int (*compare)(void *, void*));
+int
+list_push(Link ** list, void * data);
+void *
+list_pull(Link ** list);
 #endif

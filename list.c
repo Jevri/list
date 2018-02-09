@@ -288,3 +288,26 @@ list_get(Link * list, void * data,
     }
   return NULL;
 }
+int
+list_push(Link ** list, void * data)
+{
+  Link link = new_link(*list, data);
+  if (link)
+    {
+      *list = link;
+      return 0;
+    }
+  return 1;
+}
+void *
+list_pull(Link ** list)
+{
+  if (*list == NULL)
+    return NULL;
+  Link * link = *list;
+  void * data = link->data;
+  *list = (*list)->next;
+  free(link);
+  return data;
+}
+  
